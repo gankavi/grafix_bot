@@ -5,6 +5,7 @@ import re
 import time
 from collections import defaultdict
 from dotenv import load_dotenv
+from functools import wraps
 
 load_dotenv()
 
@@ -35,6 +36,7 @@ GROUP_RULES = (
 
 # 🛑 Only allow in your group
 def only_in_group(func):
+    @wraps(func)
     def wrapper(client, message: Message):
         if message.chat.id != allowed_group_id:
             message.reply("⛔ இந்த bot Grafix group-க்கு மட்டுமே செயல்படும்.")
@@ -48,8 +50,8 @@ def only_in_group(func):
 def start_command(client, message: Message):
     message.reply("👋 வணக்கம்! Grafix Group moderation bot. Rules பார்க்க `/rules` என type செய்யவும்.")
 
-# ✅ /rules command
-@app.on_message(filters.command("rules") & filters.group)
+# ✅ /rules and /rule command
+@app.on_message(filters.command(["rules", "rule"]) & filters.group)
 @only_in_group
 def rules_command(client, message: Message):
     message.reply(GROUP_RULES)
@@ -60,12 +62,16 @@ def rules_command(client, message: Message):
 def tag_explanation(client, message: Message):
     message.reply("✅ இங்கே உங்கள் tag explanation link:\nhttps://grafix-gfx.blogspot.com/p/styles.html")
 
-# ✅ Admin-only commands
+# ✅ Admin-only commands: /ban, /mute, /warn
 @app.on_message(filters.command(["ban", "mute", "warn"]) & filters.user(owner_id))
 @only_in_group
 def admin_tools(client, message: Message):
     if not message.reply_to_message:
         message.reply("🔁 User message-ஐ reply செய்து இந்த command பயன்படுத்தவும்.")
+        return
+
+    if not message.reply_to_message.from_user:
+        message.reply("⚠️ Unable to find the user from that message.")
         return
 
     target = message.reply_to_message.from_user.id
@@ -82,10 +88,13 @@ def admin_tools(client, message: Message):
         warnings[target] += 1
         message.reply(f"⚠️ Warning {warnings[target]}/3")
 
-# ✅ Text moderation
+# ✅ Text moderation: links, bad words, flood
 @app.on_message(filters.group & filters.text)
 @only_in_group
 def moderate_text(client, message: Message):
+    if not message.from_user:
+        return
+
     text = message.text.lower()
     user_id = message.from_user.id
     chat_id = message.chat.id
