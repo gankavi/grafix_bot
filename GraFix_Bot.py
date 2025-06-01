@@ -53,7 +53,7 @@ def start_command(client, message: Message):
     message.reply("👋 வணக்கம்! Grafix Group moderation bot. Rules பார்க்க `/rules` என type செய்யவும்.")
 
 # ✅ /rules and /rule command
-@app.on_message(filters.command(["rules", "rule"]) & filters.group)
+@app.on_message(filters.command(["rules"]) & filters.group)
 @only_in_group
 def rules_command(client, message: Message):
     message.reply(GROUP_RULES)
